@@ -17,24 +17,6 @@ object Ex1  extends App{
 
   val numLinesToSkip = 0
   val delimiter = ","
-  val recordReader = new CSVRecordReader(numLinesToSkip, delimiter)
-  recordReader.initialize(new FileSplit(new ClassPathResource("ex1/ex1data1.txt").getFile))
-
-
-  val iter:DataSetIterator = new RecordReaderDataSetIterator(recordReader, 1000000,1,1, true)
-  val dataSet: DataSet = iter.next()
-
-
-  val ex1data1Features = dataSet.getFeatures()
-  val ex1data1Labels = dataSet.getLabels()
-
-
-  val ones = Nd4j.onesLike(ex1data1Features)
-  val ex1data1FeaturesWithBias =  Nd4j.concat(1, ones, ex1data1Features)
-
-
-
-  val thetas =  Nd4j.create(Array(0d, 0d)).reshape(1, 2)
 
 
 
@@ -70,21 +52,98 @@ object Ex1  extends App{
   val alpha = 0.01
   val iterations = 1500
 
-  val computedThetas = computeGradient(ex1data1FeaturesWithBias, ex1data1Labels, thetas, alpha, iterations)
-  /**
-    * y = theta1*x + theta0
-    */
-
-  println(s"theta0 = ${computedThetas.getColumn(0)} theta1=${computedThetas.getColumn(1)}")
-
-
-  println("Linear regression with multiple variables")
-
 
   /**
     * Feature normalization - subtract mean, divide by standard deviation
     *
-  **/
+    **/
+
+  def normalize(features: INDArray): INDArray = {
+    val mean = features.mean(0)
+    val std = features.std(0)
+    (0 until features.columns()).foreach{
+      col =>
+
+        val mean2 = features(->, col).mean(0)
+        val sd2 = features(->, col).std(0)
+        val ala = mean.getColumn(col).getDouble(0)
+        features(->, col) = (features(->, col) - mean.getColumn(col).getDouble(0)).div(std.getColumn(col).getDouble(0))
+    }
+    features
+  }
+
+
+
+
+
+  /**
+    * y = theta1*x + theta0
+    */
+
+  def linearRegressionWithOneVariable(): Unit = {
+    val recordReader = new CSVRecordReader(numLinesToSkip, delimiter)
+    recordReader.initialize(new FileSplit(new ClassPathResource("ex1/ex1data1.txt").getFile))
+
+
+    val iter:DataSetIterator = new RecordReaderDataSetIterator(recordReader, 1000000,1,1, true)
+    val dataSet: DataSet = iter.next()
+
+
+    val features = dataSet.getFeatures()
+    val labels = dataSet.getLabels()
+
+
+    val bias = Nd4j.onesLike(features)
+    val featuresWithBias =  Nd4j.concat(1, bias, features)
+
+
+
+    val thetas =  Nd4j.create(Array(0d, 0d)).reshape(1, 2)
+
+
+
+    val computedThetas = computeGradient(featuresWithBias, labels, thetas, alpha, iterations)
+    println(s"theta0 = ${computedThetas.getColumn(0)} theta1=${computedThetas.getColumn(1)}")
+
+  }
+
+
+  def linearRegressionWithMultipleVariables(): Unit = {
+    val recordReader = new CSVRecordReader(numLinesToSkip, delimiter)
+    recordReader.initialize(new FileSplit(new ClassPathResource("ex1/ex1data2.txt").getFile))
+
+
+    val iter: DataSetIterator = new RecordReaderDataSetIterator(recordReader, 1000000, 2, 2, true)
+    val dataSet: DataSet = iter.next()
+
+    val features = dataSet.getFeatures()
+    val labels = dataSet.getLabels()
+
+    val featuresNorm = normalize(features.dup())
+
+
+    val featuresNormWithBias = Nd4j.concat(1, Nd4j.ones(featuresNorm.rows(), 1), featuresNorm)
+
+    val thetas = Nd4j.zeros(1, featuresNormWithBias.columns())
+
+    val computedThetas = computeGradient(featuresNormWithBias, labels, thetas, alpha, iterations)
+
+    println(s"theta0 = ${computedThetas.getColumn(0)} theta1=${computedThetas.getColumn(1)} theta2=${computedThetas.getColumn(2)}")
+
+  }
+
+
+
+
+    linearRegressionWithOneVariable()
+
+    linearRegressionWithMultipleVariables()
+
+
+
+
+
+
 
 
 }
