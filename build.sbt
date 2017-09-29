@@ -9,6 +9,8 @@ resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
 
+
+
 val nd4jVersion = "0.7.2"
 
 libraryDependencies ++= Seq(

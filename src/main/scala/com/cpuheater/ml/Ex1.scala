@@ -30,16 +30,13 @@ object Ex1  extends App{
   def computeGradient(features: INDArray, labels: INDArray, theta: INDArray, alpha: Double, iters: Int): INDArray ={
     val temp = Nd4j.zerosLike(theta)
     val params = theta.length()
-    val cost = Nd4j.zeros(iters)
-
+    val nbOfTrainingExamples = features.rows
     val updatedTheta = (0 to iters).foldLeft(temp)({
       case (accum, i) =>
-        val error = (features.mmul(accum.T)) - labels
+        val error = features.mmul(accum.T) - labels
         (0 until params).map{
            p =>
-             val r1 = error * features.getColumn(p)
-             val d = r1.sum(0).mul(alpha/features.rows()).getFloat(0)
-             val r2 =  accum.getFloat(0, p) - r1.sum(0).mul(alpha/features.rows()).getFloat(0)
+            val r2 =  accum.getFloat(0, p) - (error * features.getColumn(p)).sum(0).mul(alpha/nbOfTrainingExamples).getFloat(0)
             accum.put(0, p, r2)
         }
         println(s"Cost: ${computeCost(features, labels, accum)}")
