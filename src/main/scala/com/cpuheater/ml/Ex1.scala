@@ -61,9 +61,6 @@ object Ex1  extends App{
     (0 until features.columns()).foreach{
       col =>
 
-        val mean2 = features(->, col).mean(0)
-        val sd2 = features(->, col).std(0)
-        val ala = mean.getColumn(col).getDouble(0)
         features(->, col) = (features(->, col) - mean.getColumn(col).getDouble(0)).div(std.getColumn(col).getDouble(0))
     }
     features

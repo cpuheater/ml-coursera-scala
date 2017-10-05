@@ -12,7 +12,9 @@ import org.nd4j.linalg.api.ops.impl.accum.MatchCondition
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
+import org.nd4j.linalg.indexing.BooleanIndexing
 import org.nd4j.linalg.indexing.conditions.Conditions
+import org.nd4j.linalg.indexing.functions.Value
 import org.nd4j.linalg.ops.transforms.Transforms._
 import org.nd4s.Implicits._
 
@@ -29,8 +31,8 @@ object Ex3  extends App{
 
 
   def hypothesis(features: INDArray, thetas: INDArray) ={
-    val r = sigmoid(features.mmul(thetas.T))
-    r
+    sigmoid(features.mmul(thetas.T))
+
   }
 
 
@@ -41,30 +43,48 @@ object Ex3  extends App{
     val term2 = log(output.rsub(1)).mul(labels.rsub(1))
     Nd4j.clearNans(term2)
     val nbOfTrainingExamples = features.rows()
-    val regularization =  (thetas(1 to term1.rows(), ->).mmul(thetas(1 to term1.rows(), ->)) * (lambda/2*nbOfTrainingExamples)).getDouble(0)
+    val regularization =  (thetas(1 to term1.rows(), ->).mmul(thetas(1 to term1.rows(), ->).T) * (lambda/2*nbOfTrainingExamples)).getDouble(0)
     val crossEntropy =  term1.sub(term2).sumNumber().doubleValue()/nbOfTrainingExamples + regularization
     crossEntropy
   }
 
 
-  def computeGradient(features: INDArray, labels: INDArray, thetas: INDArray, alpha: Double, iters: Int, lambda: Double = 0.0): INDArray ={
-    val temp = Nd4j.zerosLike(thetas)
-    val params = thetas.length()
+  def computeGradient(features: INDArray, labels: INDArray, alpha: Double, iters: Int, lambda: Double = 0.0): INDArray ={
+    val temp =  Nd4j.zeros(1, features.columns())
+    val params = temp.length()
     val nbOfTrainingExamples = features.rows()
     val updatedTheta = (0 to iters).foldLeft(temp)({
       case (accum, i) =>
+
         val error = sigmoid(features.mmul(accum.T)) - labels
-        (0 until params).map{
-          p =>
-            val regu = thetas(->, 1->).dot(thetas(->, 1->)).getDouble(0) * lambda/nbOfTrainingExamples
-            val grad = alpha/nbOfTrainingExamples*(error * features.getColumn(p)).sum(0).getDouble(0) + regu
-            val updatedTheta =  accum.getFloat(0, p) - grad
-            accum.put(0, p, updatedTheta)
-        }
-        accum
+        val regu = accum(->, 1->) * lambda/nbOfTrainingExamples
+
+        val grad = features.T.dot(error) * alpha/nbOfTrainingExamples
+        grad(1->, ->) = grad(1->, ->) + regu
+        val updatedTheta =  accum - grad
+
+
+        println(s"Cost: for index ${i} ${computeCost(features, labels, updatedTheta)}")
+        updatedTheta
     })
     updatedTheta
 
+  }
+
+
+
+  def computeThetasForEachClass(features: INDArray, labels: INDArray): INDArray = {
+    val thetas = (0 until 10).foldLeft(Nd4j.zeros(10, features.columns())){
+      case (allThetas, index) =>
+       val labelsDuplicate =  labels.dup()
+       val `class` = if(index==0) 10 else index
+       BooleanIndexing.applyWhere(labelsDuplicate, Conditions.equals(`class`), 100)
+       BooleanIndexing.applyWhere(labelsDuplicate, Conditions.lessThan(100), 0.0)
+       BooleanIndexing.applyWhere(labelsDuplicate, Conditions.equals(100), 1.0)
+       val currentThetas = computeGradient(features, labelsDuplicate, 1, 100)
+       allThetas(index, ->) = currentThetas
+    }
+    thetas
   }
 
 
@@ -77,17 +97,38 @@ object Ex3  extends App{
 
   def logisticRegressionMultiClass(): Unit = {
 
-    val content = Loader.load("ex3data1.mat")
+    val content = Loader.load("ex3/ex3data1.mat")
     val features: INDArray =  Nd4j.create(content("X"))
-    val labels:INDArray = Nd4j.create(content("y").flatten)
+    val labels:INDArray = Nd4j.create(content("y"))
 
 
     val ones = Nd4j.ones(features.rows(), 1)
     val featuresWithBias =  Nd4j.concat(1, ones, features)
 
 
+    val allThetas = computeThetasForEachClass(featuresWithBias, labels)
 
-    val thetas =Nd4j.create(featuresWithBias.columns(), 1)
+
+    def classPrediction(features: INDArray, thetas: INDArray) = {
+     val predictions =  (0 until 10).map{
+        index =>
+          val pred =  hypothesis(features.getRow(index), thetas(index, ->))
+          pred.getDouble(0)
+      }
+      val max = Nd4j.argMax(Nd4j.create(predictions.toArray)).getDouble(0)
+
+      if(max == 0) 10.0 else max
+    }
+
+    val (total, correct) = (0 until featuresWithBias.rows()).foldLeft((0, 0)){
+      case ((total, correct), index) =>
+        if(classPrediction(featuresWithBias, allThetas) == labels.getRow(index).getDouble(0))
+          (total+1, correct+1)
+        else
+          (total+1, correct)
+    }
+
+    println(s"Accuracy ${correct.toDouble/total}")
 
     /*val computedThetas = computeGradient(featuresWithBias, labels, thetas, 0.001, 90000)
 
@@ -147,6 +188,9 @@ object Ex3  extends App{
   }
 
   neuralNetwork()
+
+
+  //logisticRegressionMultiClass()
 
 
 }
