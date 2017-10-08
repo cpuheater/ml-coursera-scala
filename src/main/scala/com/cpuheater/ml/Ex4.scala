@@ -126,7 +126,7 @@ object Ex4  extends App{
         val costHigh = computeCost(features, labels, theta1WithEpsilon, theta2WithEpsilon)
         val costLow = computeCost(features, labels, theta1 - theta1Epsilon, theta2 - theta2Epsilon)
         val nG = (costHigh - costLow) / (2 * eps)
-        println(s"Element: ${randomElement} Numerical Gradient: ${nG}, BackProp Gradient = ${Nd4j.toFlattened(delta1, delta2)(randomElement)}")
+        println(s"Element: ${randomElement} calculated numerical gradient: ${nG}, backProp gradient = ${Nd4j.toFlattened(delta1, delta2)(randomElement)}")
     }
 
   }

@@ -4,6 +4,8 @@ import org.datavec.api.records.reader.impl.csv.CSVRecordReader
 import org.datavec.api.split.FileSplit
 import org.datavec.api.util.ClassPathResource
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
+import org.nd4j.linalg.api.buffer.DataBuffer
+import org.nd4j.linalg.api.buffer.util.DataTypeUtil
 import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.dataset.DataSet
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
@@ -14,16 +16,18 @@ import org.nd4s.Implicits._
 
 object Ex1  extends App{
 
+  DataTypeUtil.setDTypeForContext(DataBuffer.Type.DOUBLE)
+
 
   val numLinesToSkip = 0
   val delimiter = ","
 
 
 
-  def computeCost(features: INDArray, labels: INDArray, theta: INDArray): Float = {
+  def computeCost(features: INDArray, labels: INDArray, theta: INDArray): Double = {
     val r = pow((features.mmul(theta.T)) - labels, 2)
     val r2 = r.sum(0)/(2*r.length)
-    r2.getFloat(0)
+    r2.getDouble(0)
   }
 
 
