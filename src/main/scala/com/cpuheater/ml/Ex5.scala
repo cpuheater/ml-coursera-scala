@@ -58,10 +58,10 @@ object Ex5 extends App {
   def normalize(features: INDArray): INDArray = {
     val mean = features.mean(0)
     val std = features.std(0)
-    val meanbroadcast =   mean.broadcast(Array(features.rows(), mean.columns()): _*)
-    features(->, 1->) =  features(->, 1->) - meanbroadcast(->, 1->)
-    val stdbroadcast =   mean.broadcast(Array(features.rows(), std.columns()): _*)
-    features(->, 1->) = features(->, 1->) / stdbroadcast(->, 1->)
+    val meanBroadcasted =   mean.broadcast(Array(features.rows(), mean.columns()): _*)
+    features(->, 1->) =  features(->, 1->) - meanBroadcasted(->, 1->)
+    val stdBroadcasted =   mean.broadcast(Array(features.rows(), std.columns()): _*)
+    features(->, 1->) = features(->, 1->) / stdBroadcasted(->, 1->)
     features
   }
 
