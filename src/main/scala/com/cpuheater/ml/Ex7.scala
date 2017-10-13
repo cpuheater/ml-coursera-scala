@@ -208,9 +208,9 @@ object Ex7  extends App{
 
   }
 
-  //kMeansClustering()
+  kMeansClustering()
 
-  //imageCompressionKMeans()
+  imageCompressionKMeans()
 
   pca()
 

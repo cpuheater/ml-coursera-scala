@@ -38,7 +38,6 @@ object Ex5 extends App {
         val grad =  features.T.dot(error) * alpha/nbOfTrainingExamples
         val regularization = accum*lambda/nbOfTrainingExamples
         regularization(0) = 0
-        val ala = grad + regularization
         val updatedThetas = accum - grad + regularization
         println(s"Cost: ${computeCost(features, labels, updatedThetas)}")
         updatedThetas
