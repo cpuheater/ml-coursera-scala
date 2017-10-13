@@ -152,7 +152,6 @@ object Ex8 extends App {
   def computeCost(features: INDArray, thetas: INDArray, y: INDArray, r: INDArray, numOfUsers: Int, numOfMovies: Int, numOfFeatures: Int, lambda: Double = 0.0) = {
     val r = features.dot(thetas.T)
     val r2 = r.mul(r)
-    val dupa = sqrt(r2 - y)
     val cost =Nd4j.sum(pow(r2 - y, 2)) * 0.5
 
     val reguCost1 = Nd4j.sum(pow(thetas, 2)) * lambda/2.0
