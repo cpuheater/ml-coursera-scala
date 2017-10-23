@@ -14,77 +14,27 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.conditions.Conditions
 import org.nd4j.linalg.ops.transforms.Transforms._
 import org.nd4s.Implicits._
+import org.nd4s.Evidences.float
 
 
 
-object Ex2  extends App{
+object Ex2  extends App with Ex2Util{
 
 
-  DataTypeUtil.setDTypeForContext(DataBuffer.Type.DOUBLE)
+  DataTypeUtil.setDTypeForContext(DataBuffer.Type.FLOAT)
 
 
   val numLinesToSkip = 0
   val delimiter = ","
 
 
-  def hypothesis(features: INDArray, thetas: INDArray) ={
-    val r = sigmoid(features.mmul(thetas.T))
-    r
-  }
-
-
-
-  def computeCost(features: INDArray, labels: INDArray, thetas: INDArray, lambda: Double = 0.0): Double = {
-    val output = hypothesis(features, thetas)
-    val term1 = log(output).mul(-labels)
-    val term2 = log(output.rsub(1)).mul(labels.rsub(1))
-    Nd4j.clearNans(term2)
-    val reguralization =  (thetas(1 to term1.rows(), ->).mmul(thetas(1 to term1.rows(), ->).T) * (lambda/2)).getDouble(0)
-    val crossEntropy =  (term1.sub(term2).sumNumber().doubleValue() + reguralization)/features.shape()(0)
-    crossEntropy
-  }
-
-
-  def computeGradient(features: INDArray, labels: INDArray, alpha: Double, iters: Int): INDArray ={
-    val temp =  Nd4j.zeros(features.columns(), 1).T
-    val params = temp.length()
-
-    val updatedTheta = (0 to iters).foldLeft(temp)({
-      case (accum, i) =>
-        val error = sigmoid(features.mmul(accum.T)) - labels
-
-        val r1 = error.T.dot(features)
-        val updatedThetas =  accum - r1 * alpha/features.rows()
-        println(s"Cost: ${computeCost(features, labels, updatedThetas)}")
-        updatedThetas
-    })
-    updatedTheta
-
-  }
-
-  def filterPositiveOrNegative(features: INDArray, labels: INDArray, condition: Double): Array[Array[Double]] = {
-    (0 until features.rows()).foldLeft(Array.empty[Array[Double]]){
-      case (accum, index) =>
-        val label = labels.getRow(index).getColumn(0).getDouble(0)
-        if(label == condition){
-          val feature = features.getRow(index)
-          val row = Array(feature(0), feature(1), feature(2))
-          accum:+row
-        }
-        else
-          accum
-    }
-  }
-
-
   /**
-    * We are not going to use ny optimization procedure but we will use
+    * We are not going to use any optimization procedure but we will use
     * gradient descent to find parameters thetas
     */
 
-
   def logisticRegression(): Unit = {
-
+    println("logisticRegression")
     val recordReader = new CSVRecordReader(numLinesToSkip, delimiter)
     recordReader.initialize(new FileSplit(new ClassPathResource("ex2/ex2data1.txt").getFile))
 
@@ -98,13 +48,12 @@ object Ex2  extends App{
     val featuresWithBias =  Nd4j.concat(1, ones, features)
     val labels = allData.getLabels()
 
+    val computedThetas = computeGradient(featuresWithBias, labels, 0.001f, 90000)
 
+    println(s"computed thetas ${computedThetas}")
 
-
-    val computedThetas = computeGradient(featuresWithBias, labels, 0.001, 90000)
-
-    val positive = Nd4j.create(filterPositiveOrNegative(featuresWithBias, labels, 1))
-    val negative = Nd4j.create(filterPositiveOrNegative(featuresWithBias, labels, 0))
+    val positive = filterPositiveOrNegative(featuresWithBias, labels, 1)
+    val negative = filterPositiveOrNegative(featuresWithBias, labels, 0)
 
 
 
@@ -112,45 +61,128 @@ object Ex2  extends App{
 
     val negativePredicted =  Nd4j.getExecutioner().exec(new MatchCondition(hypothesis(negative, computedThetas), Conditions.lessThan(0.5)),Integer.MAX_VALUE).getInt(0)
 
-
-    //println(hypothesis(Nd4j.create(Array(1.0, 45.0,85.0)), computedThetas))
-
-    println(s"percentage positive examples correctly categorized ${positivePredicted.toDouble/positive.rows()}")
-    println(s"percentage negative examples correctly categorized ${negativePredicted.toDouble/negative.rows()}")
-
-
+    println(s"Accuracy: ${(positivePredicted.toDouble + negativePredicted.toDouble)/featuresWithBias.rows()}")
 
   }
 
 
 
   def regularizedLogisticRegression(): Unit = {
-
+    println("regularizedLogisticRegression")
+    val alpha = 15f
+    val iterations = 100000
+    println("regularizedLogisticRegression")
     val recordReader = new CSVRecordReader(numLinesToSkip, delimiter)
     recordReader.initialize(new FileSplit(new ClassPathResource("ex2/ex2data2.txt").getFile))
-
-
     val iter:DataSetIterator = new RecordReaderDataSetIterator(recordReader, 1000000,2,2, true)
     val allData: DataSet = iter.next()
-
-
     val features = allData.getFeatures()
     val ones = Nd4j.ones(features.rows(), 1)
     val featuresWithBias =  Nd4j.concat(1, ones, features)
     val labels = allData.getLabels()
 
+    val featuresWithBiasMap = mapFeatures(featuresWithBias(->,1),featuresWithBias(->,2))
 
-    val computedThetas = computeGradient(featuresWithBias, labels, 0.001, 90000)
+    val computedThetas = computeGradient(featuresWithBiasMap, labels, alpha, iterations, lambda = 1)
 
-    println(s"${computedThetas}")
+
+    val positive = filterPositiveOrNegative(featuresWithBiasMap, labels, 1)
+    val negative = filterPositiveOrNegative(featuresWithBiasMap, labels, 0)
+
+
+
+    val positivePredicted  = Nd4j.getExecutioner().exec(new MatchCondition(hypothesis(positive, computedThetas), Conditions.greaterThan(0.5)),Integer.MAX_VALUE).getInt(0)
+
+    val negativePredicted =  Nd4j.getExecutioner().exec(new MatchCondition(hypothesis(negative, computedThetas), Conditions.lessThan(0.5)),Integer.MAX_VALUE).getInt(0)
+
+    println(s"Accuracy: ${(positivePredicted.toDouble + negativePredicted.toDouble)/featuresWithBias.rows()}")
+
 
 
   }
 
   logisticRegression()
 
-  //regularizedLogisticRegression()
+  regularizedLogisticRegression()
 
+
+}
+
+
+trait Ex2Util {
+
+  def hypothesis(features: INDArray, thetas: INDArray) ={
+    sigmoid(features.mmul(thetas.T))
+  }
+
+  def computeCost(features: INDArray, labels: INDArray, thetas: INDArray, lambda: Float = 0.0f): Float = {
+    val output = hypothesis(features, thetas)
+    val term1 = log(output).mul(-labels)
+    val term2 = log(output.rsub(1)).mul(labels.rsub(1))
+    Nd4j.clearNans(term2)
+    val regularization =  (thetas(1 to term1.rows(), ->).mmul(thetas(1 to term1.rows(), ->).T) * (lambda/2)).getFloat(0)
+    val crossEntropy =  (term1.sub(term2).sumNumber().floatValue() + regularization)/features.shape()(0)
+    crossEntropy
+  }
+
+
+  def computeGradient(features: INDArray, labels: INDArray, alpha: Float, iters: Int, lambda: Float = 0.0f): INDArray ={
+    val thetas =  Nd4j.zeros(features.columns(), 1).T
+    val nbOfTrainingExamples = features.rows()
+    val updatedTheta = (0 to iters).foldLeft(thetas)({
+      case (thetas, i) =>
+        val error = sigmoid(features.mmul(thetas.T)) - labels
+
+        val grad = error.T.dot(features)  * alpha/nbOfTrainingExamples
+
+        val regu = thetas(->, 1->) * lambda/nbOfTrainingExamples
+        grad(->, 1->) = grad(->, 1->) + regu
+        val updatedThetas =  thetas - grad
+        println(s"Cost: ${computeCost(features, labels, updatedThetas)}")
+        updatedThetas
+    })
+    updatedTheta
+
+  }
+
+  def filterPositiveOrNegative(features: INDArray, labels: INDArray, condition: Float): INDArray = {
+    (0 until features.rows()).foldLeft(Option.empty[INDArray]){
+      case (maybeINDArray, index) =>
+        val label = labels.getRow(index).getColumn(0).getDouble(0)
+        if(label == condition){
+          val feature = features.getRow(index)
+          if(maybeINDArray.isEmpty){
+            Some(feature)
+          }
+          else {
+            maybeINDArray.map {
+              array =>
+              Nd4j.concat(0, array, feature)
+            }
+          }
+        }
+        else
+          maybeINDArray
+    }.get
+  }
+
+
+  def mapFeatures(theta1: INDArray, theta2: INDArray): INDArray = {
+    val degree = 6
+    var position =0
+    var out = Nd4j.ones(theta1.rows(), 1)
+    (1 to  degree).map{
+      index1 =>
+        (0 to index1).map{
+          index2 =>
+            val r1 = pow(theta1, index1 - index2)
+            val r2 = pow(theta2,  index2)
+            val r3 = (r1 * r2).reshape( r1.rows(), 1 )
+            out = Nd4j.hstack(out, r3)
+        }
+    }
+    out
+  }
 
 }
 

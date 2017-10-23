@@ -50,10 +50,10 @@ object Ex3  extends App{
 
 
   def computeGradient(features: INDArray, labels: INDArray, alpha: Double, iters: Int, lambda: Double = 0.0): INDArray ={
-    val temp =  Nd4j.zeros(1, features.columns())
-    val params = temp.length()
+    val thetas =  Nd4j.zeros(1, features.columns())
+    val params = thetas.length()
     val nbOfTrainingExamples = features.rows()
-    val updatedTheta = (0 to iters).foldLeft(temp)({
+    val updatedTheta = (0 to iters).foldLeft(thetas)({
       case (accum, i) =>
 
         val error = sigmoid(features.mmul(accum.T)) - labels

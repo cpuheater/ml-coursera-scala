@@ -11,7 +11,7 @@ resolvers +=
 
 
 
-val nd4jVersion = "0.7.2"
+val nd4jVersion = "0.9.1"
 
 libraryDependencies ++= Seq(
   "org.nd4j" % "nd4j-native-platform" % nd4jVersion,

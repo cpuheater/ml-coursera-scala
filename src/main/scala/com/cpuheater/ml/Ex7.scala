@@ -95,11 +95,9 @@ object Ex7  extends App{
 
   def featureNormalize(features: INDArray):  (INDArray, INDArray, INDArray) = {
     val mean = Nd4j.mean(features, 0)
-    val meanBroadcasted =   mean.broadcast(Array(features.rows(), mean.columns()): _*)
-    val norm = features - meanBroadcasted
+    val norm = features.subRowVector(mean)
     val std = Nd4j.std(norm, 0)
-    val stdBroadcasted =   std.broadcast(Array(features.rows(), std.columns()): _*)
-    val features_normalize = norm / stdBroadcasted
+    val features_normalize = norm.divRowVector(std)
     (mean, std, features_normalize)
   }
 
@@ -114,8 +112,8 @@ object Ex7  extends App{
     val u = if (m < n) Nd4j.create(n, n) else Nd4j.create(n, n)
     val v = Nd4j.create(n, n)
 
+    Nd4j.getBlasWrapper.lapack.gesvd(covMatrix, s, u, v)
 
-    Nd4j.getBlasWrapper.lapack.sgesvd(covMatrix, s, u, v)
 
     (u, s, v)
   }
@@ -208,13 +206,13 @@ object Ex7  extends App{
 
   }
 
-  kMeansClustering()
+  //kMeansClustering()
 
-  imageCompressionKMeans()
+  //imageCompressionKMeans()
 
   pca()
 
-  faces()
+ // faces()
 
 
 
