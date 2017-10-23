@@ -23,7 +23,7 @@ object Ex4  extends App{
   val inputSize = 400
   val hiddenSize = 25
   val outputSize = 10
-  val learningRate = 1
+
 
 
   val oneHotMap = Nd4j.eye(10)
@@ -87,7 +87,8 @@ object Ex4  extends App{
         val (z2, a2, z3, a3) = forwardPropagate(feature, theta1, theta2)
         val labelOneHot = oneHotMap.getRow(labels.getRow(rowId).getDouble(0).toInt -1)
         val error3 = a3 - labelOneHot
-        val error2 =  theta2.T(1->, ->).mmul(error3.T) * sigmoidDerivative(a2)
+        val hela = theta2.T(1->, ->).dot(error3.T)
+        val error2 =  theta2.T(1->, ->).dot(error3.T) * sigmoidDerivative(a2).T
         val newTotalDelta1 = totalDelta1 + error2.mmul(feature)
         val a2WithOnes = Nd4j.concat(1, Nd4j.ones(1), a2).reshape(1, hiddenSize+1)
         val nnewTotalDelta2 = totalDelta2 + error3.T.mmul(a2WithOnes)
@@ -95,8 +96,8 @@ object Ex4  extends App{
 
     }
 
-    val delta1Norm = delta1/nbDataExamples.toDouble
-    val delta2Norm = delta2/nbDataExamples.toDouble
+    val delta1Norm = delta1/nbDataExamples.toFloat
+    val delta2Norm = delta2/nbDataExamples.toFloat
 
     delta1Norm(->, 1->) = delta1Norm(->, 1->) + theta1(->, 1->)*lambda/nbDataExamples
     delta2Norm(->, 1->) = delta2Norm(->, 1->) + theta2(->, 1->)*lambda/nbDataExamples
@@ -132,11 +133,11 @@ object Ex4  extends App{
   }
 
 
-  def train(features: INDArray, labels: INDArray, theta1: INDArray, theta2: INDArray, iter: Int, lr: Double = 1, lambda: Double = 0.0) = {
+  def train(features: INDArray, labels: INDArray, theta1: INDArray, theta2: INDArray, iter: Int, lr: Float = 1f, lambda: Float = 0.0f) = {
 
     (0 until iter).foldLeft((theta1, theta2)){
       case ((theta1, theta2), index) =>
-        val cost = computeCost(features, labels, theta1, theta2)
+        val cost = computeCost(features, labels, theta1, theta2, lambda)
         println(s"Cost ${cost}")
         val (delta1, delta2) = backpropagation( features, labels, theta1, theta2, lambda)
         val updatedTheta1 = theta1 - delta1
@@ -187,17 +188,21 @@ object Ex4  extends App{
 
     val cost  = computeCost(featuresWithBias, labels, theta1, theta2)
 
-    println(s"Cost: ${cost} %")
+    println(s"FeedforwardNeuralNetwork Cost: ${cost} %")
 
     val regulCost  = computeCost(featuresWithBias, labels, theta1, theta2, 1)
 
-    println(s"Regularized cost: ${regulCost} %")
+    println(s"FeedforwardNeuralNetwork Regularized cost: ${regulCost} %")
 
 
   }
 
 
   def backpropagationNeuralNetwork(): Unit = {
+
+    val alpha = 4
+
+    val iters = 50
 
     val content = Loader.load("ex4/ex4data1.mat")
     val features: INDArray =  Nd4j.create(content("X"))
@@ -213,19 +218,13 @@ object Ex4  extends App{
 
     gradientChecking(featuresWithBias, labels, theta1, theta2, delta1, delta2)
 
-    val (trainedTheta1, trainedTheta2) = train(featuresWithBias, labels, theta1, theta2, 50, learningRate, 0)
+    val (trainedTheta1, trainedTheta2) = train(featuresWithBias, labels, theta1, theta2, iters, alpha, 0)
 
 
 
     val accuracy = computeAccuracy(featuresWithBias, labels, trainedTheta1, trainedTheta2)
 
-    println(s"Accuracy: ${accuracy} %")
-
-    val (regTrainedTheta1, regTrainedTheta2) = train(featuresWithBias, labels, theta1, theta2, 50, learningRate, 1)
-
-    val regAccuracy = computeAccuracy(featuresWithBias, labels, trainedTheta1, trainedTheta2)
-
-    println(s"Accuracy with regularization: ${regAccuracy} %")
+    println(s"Backpropagation neural network accuracy: ${accuracy} %")
 
   }
 
