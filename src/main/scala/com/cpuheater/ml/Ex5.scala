@@ -12,12 +12,83 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.ops.transforms.Transforms.pow
 import org.nd4j.linalg.ops.transforms.Transforms._
 import org.nd4s.Implicits._
+import org.nd4s.Evidences.float
 
-object Ex5 extends App {
+
+object Ex5 extends App with Ex5Util {
 
 
   val numLinesToSkip = 0
   val delimiter = ","
+
+
+  def regularizedLinearRegression(): Unit = {
+    println("regularizedLinearRegression")
+    val alpha = 0.001
+    val iters = 2000
+    val lambda = 0.0
+    val content = Loader.load("ex5/ex5data1.mat")
+    val features: INDArray =  Nd4j.create(content("X"))
+    val labels:INDArray = Nd4j.create(content("y"))
+    val featuresValidation: INDArray =  Nd4j.create(content("Xval"))
+    val labelsValidation:INDArray = Nd4j.create(content("yval"))
+    val featuresTest: INDArray =  Nd4j.create(content("Xval"))
+    val labelsTest:INDArray = Nd4j.create(content("yval"))
+    val featuresWithBias = Nd4j.concat(1, Nd4j.ones(features.rows(), 1), features)
+    val thetas = Nd4j.ones(Array(2, 1): _*)
+
+    val cost = computeCost(featuresWithBias, labels,  thetas, 1.0)
+    val computedThetas = computeGradient(featuresWithBias, labels, thetas, alpha, iters, lambda)
+
+
+    println(s"Computed thetas ${computedThetas}")
+
+  }
+
+  def polynomialLinearRegression(): Unit = {
+    println("polynomialLinearRegression")
+
+    val alpha = 0.01
+    val iterations = 20000
+    val lambda = 0.0001
+    val content = Loader.load("ex5/ex5data1.mat")
+    val features: INDArray =  Nd4j.create(content("X"))
+    val labels:INDArray = Nd4j.create(content("y"))
+    val featuresValidation: INDArray =  Nd4j.create(content("Xval"))
+    val labelsValidation:INDArray = Nd4j.create(content("yval"))
+    val featuresTest: INDArray =  Nd4j.create(content("Xval"))
+    val labelsTest:INDArray = Nd4j.create(content("yval"))
+
+    val featuresWithBias = Nd4j.concat(1, Nd4j.ones(features.rows(), 1), features)
+    val newFeatures = createPolynomialFeatures(featuresWithBias, 5)
+    val newFeaturesNorm = normalize(newFeatures)
+    val thetas = Nd4j.ones(Array(newFeaturesNorm.columns(), 1): _*)
+    val computedThetas = computeGradient(newFeaturesNorm, labels, thetas, alpha, iterations, lambda)
+    println(s"Computed thetas ${computedThetas}")
+
+  }
+
+
+  regularizedLinearRegression()
+
+
+  polynomialLinearRegression()
+
+
+}
+
+trait Ex5Util {
+
+  def createPolynomialFeatures(features: INDArray, degree: Int) : INDArray= {
+    val featuresDuplicate = features.dup()
+
+    (0 until degree).foldLeft(featuresDuplicate){
+      case (accum, index) =>
+        val power = index +2
+        val newFeaturesDuplicate = Nd4j.concat(1, accum, pow(featuresDuplicate(->, 1), power))
+        newFeaturesDuplicate
+    }
+  }
 
 
   def computeCost(features: INDArray, labels: INDArray, thetas: INDArray, lambda: Double = 0.0): Double = {
@@ -76,102 +147,5 @@ object Ex5 extends App {
   def hypothesis(features: INDArray, thetas: INDArray) ={
     features.mmul(thetas)
   }
-
-
-  def regularizedLinearRegression(): Unit = {
-
-    val alpha = 0.0001
-    val iterations = 20000
-    val lambda = 0.1
-
-
-    val content = Loader.load("ex5/ex5data1.mat")
-    val features: INDArray =  Nd4j.create(content("X"))
-    val labels:INDArray = Nd4j.create(content("y"))
-
-
-    val featuresValidation: INDArray =  Nd4j.create(content("Xval"))
-    val labelsValidation:INDArray = Nd4j.create(content("yval"))
-
-    val featuresTest: INDArray =  Nd4j.create(content("Xval"))
-    val labelsTest:INDArray = Nd4j.create(content("yval"))
-
-
-
-
-    val featuresWithBias = Nd4j.concat(1, Nd4j.ones(features.rows(), 1), features)
-
-    val thetas = Nd4j.ones(Array(2, 1): _*)
-
-    val cost = computeCost(featuresWithBias, labels,  thetas, 1.0)
-
-    println(s"Regularized cost ${cost}")
-
-    val computedThetas = computeGradient(featuresWithBias, labels, thetas, alpha, iterations, lambda)
-
-
-    println(s"Computed thetas ${computedThetas}")
-
-  }
-
-
-  def createPolynomialFeatures(features: INDArray, degree: Int) : INDArray= {
-    val featuresDuplicate = features.dup()
-
-    (0 until degree).foldLeft(featuresDuplicate){
-      case (accum, index) =>
-        val power = index +2
-        val newFeaturesDuplicate = Nd4j.concat(1, accum, pow(featuresDuplicate(->, 1), power))
-        newFeaturesDuplicate
-    }
-  }
-
-
-
-  def polynomialLinearRegression(): Unit = {
-
-    val alpha = 0.01
-    val iterations = 20000
-    val lambda = 0.0001
-
-
-
-
-    val content = Loader.load("ex5/ex5data1.mat")
-    val features: INDArray =  Nd4j.create(content("X"))
-    val labels:INDArray = Nd4j.create(content("y"))
-
-
-    val featuresValidation: INDArray =  Nd4j.create(content("Xval"))
-    val labelsValidation:INDArray = Nd4j.create(content("yval"))
-
-    val featuresTest: INDArray =  Nd4j.create(content("Xval"))
-    val labelsTest:INDArray = Nd4j.create(content("yval"))
-
-
-
-
-    val featuresWithBias = Nd4j.concat(1, Nd4j.ones(features.rows(), 1), features)
-
-
-    val newFeatures = createPolynomialFeatures(featuresWithBias, 5)
-
-    val newFeaturesNorm = normalize(newFeatures)
-
-    val thetas = Nd4j.ones(Array(newFeaturesNorm.columns(), 1): _*)
-
-    val computedThetas = computeGradient(newFeaturesNorm, labels, thetas, alpha, iterations, lambda)
-
-
-    println(s"Computed thetas ${computedThetas}")
-
-  }
-
-
-  regularizedLinearRegression()
-
-
-  polynomialLinearRegression()
-
 
 }

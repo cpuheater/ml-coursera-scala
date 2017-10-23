@@ -87,7 +87,6 @@ object Ex4  extends App{
         val (z2, a2, z3, a3) = forwardPropagate(feature, theta1, theta2)
         val labelOneHot = oneHotMap.getRow(labels.getRow(rowId).getDouble(0).toInt -1)
         val error3 = a3 - labelOneHot
-        val hela = theta2.T(1->, ->).dot(error3.T)
         val error2 =  theta2.T(1->, ->).dot(error3.T) * sigmoidDerivative(a2).T
         val newTotalDelta1 = totalDelta1 + error2.mmul(feature)
         val a2WithOnes = Nd4j.concat(1, Nd4j.ones(1), a2).reshape(1, hiddenSize+1)
