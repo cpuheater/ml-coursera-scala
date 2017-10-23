@@ -7,21 +7,113 @@ import org.nd4j.linalg.api.ndarray.INDArray
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.ops.transforms.Transforms._
 import org.nd4s.Implicits._
-
 import scala.collection.JavaConversions._
 import scala.collection.JavaConverters._
 import scala.collection.SortedSet
 import scala.util.Random
+import org.nd4s.Evidences.float
 
 
-object Ex7  extends App{
+object Ex7  extends App with Ex7Util {
 
-  DataTypeUtil.setDTypeForContext(DataBuffer.Type.DOUBLE)
+  DataTypeUtil.setDTypeForContext(DataBuffer.Type.FLOAT)
 
 
-  def distSquared(p1: INDArray, p2: INDArray): Double = {
+  def kMeansClustering()  {
+
+    val data = Loader.load("ex7/ex7data2.mat")
+    val features: INDArray =  Nd4j.create(data("X"))
+
+    val K = 3
+
+    val centroids = Nd4j.create(Array(Array(3.0, 3), Array(6.0,2), Array(8.0,5)))
+
+    val newCentroids = runKMeans(features, centroids , 3, 10)
+    println(s"Centroids: ${newCentroids}")
+  }
+
+  def imageCompressionKMeans()  {
+
+    val data = Loader.load("ex7/bird_small.mat")
+    val features: INDArray =  (Nd4j.create(data("A")) / 255).reshape(-1, 3)
+
+
+    val K = 16
+    val randomCentroids = chooseKRandomCentroids(features,K)
+    val newCentroids = runKMeans(features,randomCentroids, K, 10)
+
+    println(s"Image compression centroids : ${newCentroids}")
+  }
+
+  def projectData(features: INDArray, u: INDArray, k: Int) : INDArray = {
+    val uReduced = u(->, 0 -> k)
+    features.dot(uReduced)
+  }
+
+  def recoverData(z: INDArray, u: INDArray, k: Int) = {
+    val uReduced = u(->, 0 -> k)
+    z.dot(uReduced.T)
+  }
+
+  def pca(): Unit = {
+
+    val data = Loader.load("ex7/ex7data1.mat")
+    val features: INDArray =  (Nd4j.create(data("X")))
+
+    val (means, std, featuresNorm) = featureNormalize(features)
+
+
+    val (u, s, v) = getUSV(featuresNorm)
+    println(s"Matrix U ${u}")
+    println(s"Matrix S ${s}")
+    println(s"Matrix V ${v}")
+
+
+    val z = projectData(featuresNorm, u, 1)
+    println(s"Projections of first components ${z(0)}")
+
+
+    val recovered = recoverData(z, u, 1)
+    println(s"Recovered data ${recovered}")
+  }
+
+
+
+  def faces(): Unit = {
+
+    val data = Loader.load("ex7/ex7faces.mat")
+    val features: INDArray =  (Nd4j.create(data("X")))
+
+    val (means, std, featuresNorm) = featureNormalize(features)
+
+
+    val (u, s, v) = getUSV(featuresNorm)
+
+
+    val z = projectData(featuresNorm, u, 1)
+    println(s"Projections of first components ${z(0)}")
+
+
+    val recovered = recoverData(z, u, 1)
+    println(s"Recovered data ${recovered.getRow(0)}")
+  }
+
+  kMeansClustering()
+
+  imageCompressionKMeans()
+
+  pca()
+
+  faces()
+
+}
+
+
+trait Ex7Util {
+
+  def distSquared(p1: INDArray, p2: INDArray): Float = {
     val power = pow(p1-p2, 2)
-    val dist = Nd4j.sum(power).getDouble(0)
+    val dist = Nd4j.sum(power).getFloat(0)
     dist
   }
 
@@ -30,7 +122,7 @@ object Ex7  extends App{
     val centroidIndexes = (0 until features.rows()).map{
       index =>
         val feature =  features.getRow(index)
-        val (_, centroidIndex) = (0 until centroids.rows()).foldLeft((Double.MaxValue, 0)){
+        val (_, centroidIndex) = (0 until centroids.rows()).foldLeft((Float.MaxValue, 0)){
           case ((min, minCentroidIndex), centroidIndex) =>
             val centroid = centroids.getRow(centroidIndex)
             val dist =  distSquared(feature, centroid)
@@ -117,115 +209,6 @@ object Ex7  extends App{
 
     (u, s, v)
   }
-
-
-  def kMeansClustering()  {
-
-    val data = Loader.load("ex7/ex7data2.mat")
-    val features: INDArray =  Nd4j.create(data("X"))
-
-    val K = 3
-
-    val centroids = Nd4j.create(Array(Array(3.0, 3), Array(6.0,2), Array(8.0,5)))
-
-    val newCentroids = runKMeans(features, centroids , 3, 10)
-    println(s"Centroids: ${newCentroids}")
-
-
-  }
-
-  def imageCompressionKMeans()  {
-
-    val data = Loader.load("ex7/bird_small.mat")
-    val features: INDArray =  (Nd4j.create(data("A")) / 255).reshape(-1, 3)
-
-
-    val K = 16
-    val randomCentroids = chooseKRandomCentroids(features,K)
-    val newCentroids = runKMeans(features,randomCentroids, K, 10)
-
-    println(s"Image compression centroids : ${newCentroids}")
-
-
-  }
-
-  def projectData(features: INDArray, u: INDArray, k: Int) : INDArray = {
-    val uReduced = u(->, 0 -> k)
-    features.dot(uReduced)
-  }
-
-  def recoverData(z: INDArray, u: INDArray, k: Int) = {
-    val uReduced = u(->, 0 -> k)
-    z.dot(uReduced.T)
-  }
-
-  def pca(): Unit = {
-
-    val data = Loader.load("ex7/ex7data1.mat")
-    val features: INDArray =  (Nd4j.create(data("X")))
-
-    val (means, std, featuresNorm) = featureNormalize(features)
-
-
-    val (u, s, v) = getUSV(featuresNorm)
-    println(s"Matrix U ${u}")
-    println(s"Matrix S ${s}")
-    println(s"Matrix V ${v}")
-
-
-    val z = projectData(featuresNorm, u, 1)
-    println(s"Projections of first components ${z(0)}")
-
-
-    val recovered = recoverData(z, u, 1)
-    println(s"Recovered data ${recovered}")
-
-
-  }
-
-
-
-  def faces(): Unit = {
-
-    val data = Loader.load("ex7/ex7faces.mat")
-    val features: INDArray =  (Nd4j.create(data("X")))
-
-    val (means, std, featuresNorm) = featureNormalize(features)
-
-
-    val (u, s, v) = getUSV(featuresNorm)
-
-
-    val z = projectData(featuresNorm, u, 1)
-    println(s"Projections of first components ${z(0)}")
-
-
-    val recovered = recoverData(z, u, 1)
-    println(s"Recovered data ${recovered.getRow(0)}")
-
-
-  }
-
-  //kMeansClustering()
-
-  //imageCompressionKMeans()
-
-  pca()
-
- // faces()
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 }
 

@@ -27,12 +27,12 @@ object Ex6 extends App{
   def accuracy(pred: INDArray, labels: INDArray): Float = {
     val sum = (0 until pred.rows()).map{
       index =>
-        if(pred(index) == labels(index))
+        if(pred.getRow(index).getFloat(0) == labels.getRow(index).getFloat(0))
           1
         else
           0
     }.sum
-    sum / pred.rows()
+    sum.toFloat / pred.rows()
   }
 
 
@@ -40,22 +40,22 @@ object Ex6 extends App{
     val content = Loader.load("ex6/ex6data1.mat")
     val features: INDArray =  Nd4j.create(content("X"))
     val labels:INDArray = Nd4j.create(content("y"))
-
-    val svm = new SVM(10000, "linear", 1.0f, 0.001f)
+    BooleanIndexing.applyWhere(labels, Conditions.lessThan(1), -1)
+    val svm = new SVM(10, 0.001f)
     svm.fit(features, labels)
     val pred = svm.predict(features)
 
-    print(s"Accuracy: ${accuracy(pred, labels)}")
-
+    println(s"Accuracy: ${accuracy(pred.T, labels)}")
   }
 
   linearSVM()
-
 }
 
 
-class SVM(iter: Int = 10000, kernelType: String = "linear", c: Float = 1.0f, epsilon: Float = 0.001f) {
+class SVM(iter: Int, epsilon: Float = 0.001f) {
 
+
+  val c: Float = 1.0f
 
   var w = Nd4j.zeros(1)
   var b = 0f
@@ -76,10 +76,10 @@ class SVM(iter: Int = 10000, kernelType: String = "linear", c: Float = 1.0f, eps
 
           if(k_ij != 0)  {
             val (alpha_prime_j, alpha_prime_i) = (alpha(j), alpha.apply(i))
-            val (l, h) = compute_L_H(c, alpha_prime_j, alpha_prime_i, y_j, y_i)
+            val (l, h) = computeMinMax(c, alpha_prime_j, alpha_prime_i, y_j, y_i)
 
-            w = calc_w(alpha, labels, features)
-            b = calc_b(features, labels, w)
+            w = calcW(alpha, labels, features)
+            b = calcB(features, labels, w)
 
             val e_i = e(x_i, y_i, w, b)
             val e_j = e(x_j, y_j, w, b)
@@ -106,9 +106,8 @@ class SVM(iter: Int = 10000, kernelType: String = "linear", c: Float = 1.0f, eps
         continue = false
     }
 
-    b = calc_b(features, labels, w)
-    if(kernelType == "linear")
-      w = calc_w(alpha, labels, features)
+    b = calcB(features, labels, w)
+    w = calcW(alpha, labels, features)
   }
 
 
@@ -129,18 +128,18 @@ class SVM(iter: Int = 10000, kernelType: String = "linear", c: Float = 1.0f, eps
   }
 
 
-  private def calc_b(x: INDArray, y: INDArray, w: INDArray): Float ={
+  private def calcB(x: INDArray, y: INDArray, w: INDArray): Float ={
     val b_tmp = y - w.dot(x.T)
     Nd4j.mean(b_tmp).getFloat(0)
   }
 
-  private def calc_w(alpha: INDArray, y: INDArray, x: INDArray): INDArray = {
-    (alpha * y).dot(x)
+  private def calcW(alpha: INDArray, y: INDArray, x: INDArray): INDArray = {
+    (alpha * y.T).dot(x)
   }
 
 
 
-  private def compute_L_H(c: Float, alpha_prime_j: Float, alpha_prime_i: Float, y_j: Float, y_i: Float): (Float, Float) = {
+  private def computeMinMax(c: Float, alpha_prime_j: Float, alpha_prime_i: Float, y_j: Float, y_i: Float): (Float, Float) = {
     if(y_i != y_j)
       (Math.max(0, alpha_prime_j - alpha_prime_i), Math.min(c, c - alpha_prime_i + alpha_prime_j))
     else

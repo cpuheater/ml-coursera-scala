@@ -1,15 +1,10 @@
 name := "ml-coursera-scala"
 organization := "com.cpuheater"
 version := "0.0.1"
-
 scalaVersion in ThisBuild := "2.11.8"
-
 
 resolvers +=
   "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
-
-
-
 
 val nd4jVersion = "0.9.1"
 
