@@ -35,6 +35,9 @@ object Ex2  extends App with Ex2Util{
 
   def logisticRegression(): Unit = {
     println("logisticRegression")
+    val alpha = 0.001f
+    val iterations = 90000
+
     val recordReader = new CSVRecordReader(numLinesToSkip, delimiter)
     recordReader.initialize(new FileSplit(new ClassPathResource("ex2/ex2data1.txt").getFile))
 
@@ -48,9 +51,9 @@ object Ex2  extends App with Ex2Util{
     val featuresWithBias =  Nd4j.concat(1, ones, features)
     val labels = allData.getLabels()
 
-    val computedThetas = computeGradient(featuresWithBias, labels, 0.001f, 90000)
+    val computedThetas = computeGradient(featuresWithBias, labels, alpha, iterations)
 
-    println(s"computed thetas ${computedThetas}")
+    println(s"Computed thetas ${computedThetas}")
 
     val positive = filterPositiveOrNegative(featuresWithBias, labels, 1)
     val negative = filterPositiveOrNegative(featuresWithBias, labels, 0)
@@ -169,7 +172,6 @@ trait Ex2Util {
 
   def mapFeatures(theta1: INDArray, theta2: INDArray): INDArray = {
     val degree = 6
-    var position =0
     var out = Nd4j.ones(theta1.rows(), 1)
     (1 to  degree).map{
       index1 =>
