@@ -1,27 +1,19 @@
 package com.cpuheater.ml
 
 import com.cpuheater.util.Loader
-import org.datavec.api.records.metadata.RecordMetaData
-import org.datavec.api.records.reader.RecordReader
 import org.nd4s.Implicits._
 import org.nd4j.linalg.inverse.InvertMatrix
 import org.nd4j.linalg.ops.transforms.Transforms._
 import org.nd4j.linalg.indexing.BooleanIndexing
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.indexing.conditions.Conditions
-import org.datavec.api.records.reader.impl.csv.CSVRecordReader
 import org.datavec.api.records.reader.impl.regex.RegexLineRecordReader
 import org.datavec.api.split.FileSplit
 import org.datavec.api.util.ClassPathResource
-import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.nd4j.linalg.api.buffer.DataBuffer
 import org.nd4j.linalg.api.buffer.util.DataTypeUtil
 import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.dataset.DataSet
-import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
-
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 
 
 object Ex8 extends App  with Ex8Util{

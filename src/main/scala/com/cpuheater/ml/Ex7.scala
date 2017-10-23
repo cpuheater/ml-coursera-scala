@@ -8,7 +8,6 @@ import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.ops.transforms.Transforms._
 import org.nd4s.Implicits._
 import scala.collection.JavaConversions._
-import scala.collection.JavaConverters._
 import scala.collection.SortedSet
 import scala.util.Random
 import org.nd4s.Evidences.float

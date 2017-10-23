@@ -1,16 +1,9 @@
 package com.cpuheater.ml
 
 import com.cpuheater.util.Loader
-import org.datavec.api.records.reader.impl.csv.CSVRecordReader
-import org.datavec.api.split.FileSplit
-import org.datavec.api.util.ClassPathResource
-import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator
 import org.nd4j.linalg.api.ndarray.INDArray
-import org.nd4j.linalg.dataset.DataSet
-import org.nd4j.linalg.dataset.api.iterator.DataSetIterator
 import org.nd4j.linalg.factory.Nd4j
 import org.nd4j.linalg.ops.transforms.Transforms.pow
-import org.nd4j.linalg.ops.transforms.Transforms._
 import org.nd4s.Implicits._
 import org.nd4s.Evidences.float
 
